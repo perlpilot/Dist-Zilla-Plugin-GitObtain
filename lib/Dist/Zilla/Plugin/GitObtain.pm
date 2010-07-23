@@ -1,10 +1,7 @@
 package Dist::Zilla::Plugin::GitObtain;
 
-# ABSTRACT: obtain files from a git repository before building the distribution
+# ABSTRACT: obtain files from a git repository before building a distribution
 
-our $VERSION = '0.01';
-
-use Cwd;
 use Git::Wrapper;
 use File::Path qw/ make_path remove_tree /;
 use Moose;
@@ -75,5 +72,52 @@ sub after_build {
     remove_tree($self->git_dir) or die "Can't remove dir " . $self->git_dir . " -- $!";
 }
 
-
+__PACKAGE__->meta->make_immutable;
 1;
+
+__END__
+=pod
+
+=head1 NAME
+
+Dist::Zilla::Plugin::GitObtain - obtain files from a git repository before building a distribution
+
+=head1 SYNOPSIS
+
+In your F<dist.ini>:
+
+  [GitObtain]
+    --git_dir = some_dir
+    ;package    = url                                           tag
+    rakudo      = git://github.com/rakudo/rakudo.git            2010.06
+    http-daemon = git://gitorious.org/http-daemon/mainline.git
+
+=head1 DESCRIPTION
+
+This module uses L<Git::Wrapper> to obtain files from git repositories
+before building a distribution.
+
+You may specify the directory the git repositories will be placed into
+by using the C<--git_dir> option.  This directory path will be created
+if it does not already exist (including intermediate directories).
+After the build is complete, this directory will be removed.  If you do
+not specify C<--git_dir>, a default value of "src" will be used.
+
+Each repository has a name that will be used as the directory within the
+C<--git_dir> directory to place a clone of the git repository specified
+by the URL.  Optionally, each URL may be followed by a "tag" name that
+will be checked out of the git repository.  (Anything that may be passed
+to C<git checkout> may be used for the "tag".)
+
+=head1 AUTHOR
+
+Jonathan Scott Duff <duff@pobox.com>
+
+=head1 COPYRIGHT
+
+This software is copyright (c) 2010 by Jonathan Scott Duff
+
+This is free sofware; you can redistribute it and/or modify it under the
+same terms as the Perl 5 programming language itself.
+
+=cut
