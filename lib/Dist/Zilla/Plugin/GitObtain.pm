@@ -50,17 +50,25 @@ sub BUILDARGS {
     };
 }
 
+my $git_dir_exists = 0;
+
 sub before_build {
     my $self = shift;
 
-    make_path($self->git_dir) or die "Can't create dir " . $self->git_dir . " -- $!";
+    if (-d $self->git_dir) {
+        $git_dir_exists = 1;
+        $self->log("using existing dir " . $self->git_dir);
+    } else {
+        $self->log("creating dir " . $self->git_dir);
+        make_path($self->git_dir) or die "Can't create dir " . $self->git_dir . " -- $!";
+    }
     for my $project (keys %{$self->_repos}) {
         my ($url,$tag) = map { $self->_repos->{$project}{$_} } qw/url tag/;
         $self->log("cloning $project ($url)");
         my $git = Git::Wrapper->new($self->git_dir);
         $git->clone($url,$project) or die "Can't clone repository $url -- $!";
         next unless $tag;
-        $self->log("checkout $tag");
+        $self->log("checkout $project revision $tag");
         my $git_tag = Git::Wrapper->new($self->git_dir . '/' . $project);
         $git_tag->checkout($tag);
     }
@@ -69,7 +77,16 @@ sub before_build {
 
 sub after_build {
     my $self = shift;
-    remove_tree($self->git_dir) or die "Can't remove dir " . $self->git_dir . " -- $!";
+    if ($git_dir_exists) {
+        for my $project (keys %{$self->_repos}) {
+            my $dir = $self->git_dir . '/' . $project;
+            $self->log("removing $dir");
+            remove_tree($dir) or warn "Can't remove $dir -- $!\n";
+        }
+    } else {
+        $self->log("removing " . $self->git_dir);
+        remove_tree($self->git_dir) or warn "Can't remove dir " . $self->git_dir . " -- $!\n";
+    }
 }
 
 __PACKAGE__->meta->make_immutable;
