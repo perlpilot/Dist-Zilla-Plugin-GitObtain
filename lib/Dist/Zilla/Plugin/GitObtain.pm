@@ -52,11 +52,11 @@ sub before_build {
     make_path($self->git_dir) or die "Can't create dir " . $self->git_dir . " -- $!";
     for my $project (keys %{$self->_repos}) {
         my ($url,$tag) = map { $self->_repos->{$project}{$_} } qw/url tag/;
-        $self->log("cloning $project ($url)");
+        $self->log("cloning $project");
         my $git = Git::Wrapper->new($self->git_dir);
         $git->clone($url,$project) or die "Can't clone repository $url -- $!";
         next unless $tag;
-        $self->log("checkout $tag");
+        $self->log("checkout $project revision $tag");
         my $git_tag = Git::Wrapper->new($self->git_dir . '/' . $project);
         $git_tag->checkout($tag);
     }
