@@ -15,7 +15,7 @@ with 'Dist::Zilla::Role::BeforeBuild';
 with 'Dist::Zilla::Role::AfterBuild';
 
 has 'git_dir' => (
-    is => 'ro',
+    is => 'rw',
     isa => 'Str',
     required => 1,
     default => 'src',
@@ -34,7 +34,13 @@ sub BUILDARGS {
     my $zilla = delete $repos{zilla};
     my $name = delete $repos{plugin_name};
 
+    my %args;
     for my $project (keys %repos) {
+        if ($project =~ /^--/) {
+            (my $arg = $project) =~ s/^--//;
+            $args{$arg} = $repos{$project};
+            next;
+        }
         my ($url,$tag) = split ' ', $repos{$project};
         $repos{$project} = { url => $url, tag => $tag };
     }
@@ -43,6 +49,7 @@ sub BUILDARGS {
         zilla => $zilla,
         plugin_name => $name,
         _repos => \%repos,
+        %args,
     };
 }
 
@@ -65,7 +72,7 @@ sub before_build {
 
 sub after_build {
     my $self = shift;
-    remove_tree($self->git_dir);
+    remove_tree($self->git_dir) or die "Can't remove dir " . $self->git_dir . " -- $!";
 }
 
 
