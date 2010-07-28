@@ -18,6 +18,13 @@ has 'git_dir' => (
     default => 'src',
 );
 
+has 'keep_git_dirs' => (
+    is => 'rw',
+    isa => 'Bool',
+    required => 1,
+    default => 0,
+);
+
 has _repos => (
     is => 'ro',
     isa => 'HashRef',
@@ -35,7 +42,7 @@ sub BUILDARGS {
     for my $project (keys %repos) {
         if ($project =~ /^--/) {
             (my $arg = $project) =~ s/^--//;
-            $args{$arg} = $repos{$project};
+            $args{$arg} = delete $repos{$project};
             next;
         }
         my ($url,$tag) = split ' ', $repos{$project};
@@ -57,10 +64,10 @@ sub before_build {
 
     if (-d $self->git_dir) {
         $git_dir_exists = 1;
-        $self->log("using existing dir " . $self->git_dir);
+        $self->log("using existing directory " . $self->git_dir);
     } else {
-        $self->log("creating dir " . $self->git_dir);
-        make_path($self->git_dir) or die "Can't create dir " . $self->git_dir . " -- $!";
+        $self->log("creating directory " . $self->git_dir);
+        make_path($self->git_dir) or die "Can't create directory " . $self->git_dir . " -- $!";
     }
     for my $project (keys %{$self->_repos}) {
         my ($url,$tag) = map { $self->_repos->{$project}{$_} } qw/url tag/;
@@ -75,17 +82,22 @@ sub before_build {
 }
 
 
+sub _remove_dir {
+    my ($self,$dir) = @_;
+    $self->log("removing $dir");
+    remove_tree($dir) or warn "Can't remove directory $dir -- $!\n";
+}
+
 sub after_build {
     my $self = shift;
+    return if $self->keep_git_dirs;
     if ($git_dir_exists) {
         for my $project (keys %{$self->_repos}) {
             my $dir = $self->git_dir . '/' . $project;
-            $self->log("removing $dir");
-            remove_tree($dir) or warn "Can't remove $dir -- $!\n";
+            $self->_remove_dir($dir);
         }
     } else {
-        $self->log("removing " . $self->git_dir);
-        remove_tree($self->git_dir) or warn "Can't remove dir " . $self->git_dir . " -- $!\n";
+        $self->_remove_dir($self->git_dir);
     }
 }
 
@@ -104,7 +116,8 @@ Dist::Zilla::Plugin::GitObtain - obtain files from a git repository before build
 In your F<dist.ini>:
 
   [GitObtain]
-    --git_dir = some_dir
+    --git_dir       = some_dir
+    --keep_git_dirs = 1
     ;package    = url                                           tag
     rakudo      = git://github.com/rakudo/rakudo.git            2010.06
     http-daemon = git://gitorious.org/http-daemon/mainline.git
@@ -119,6 +132,8 @@ by using the C<--git_dir> option.  This directory path will be created
 if it does not already exist (including intermediate directories).
 After the build is complete, this directory will be removed.  If you do
 not specify C<--git_dir>, a default value of "src" will be used.
+If you don't want the directories that are created to be removed after
+the completion of the build, set C<--keep_git_dirs> to be a true value.
 
 Each repository has a name that will be used as the directory within the
 C<--git_dir> directory to place a clone of the git repository specified
