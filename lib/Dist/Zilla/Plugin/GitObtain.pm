@@ -9,20 +9,12 @@ use namespace::autoclean;
 
 with 'Dist::Zilla::Role::Plugin';
 with 'Dist::Zilla::Role::BeforeBuild';
-with 'Dist::Zilla::Role::AfterBuild';
 
 has 'git_dir' => (
     is => 'rw',
     isa => 'Str',
     required => 1,
     default => 'src',
-);
-
-has 'keep_git_dirs' => (
-    is => 'rw',
-    isa => 'Bool',
-    required => 1,
-    default => 0,
 );
 
 has _repos => (
@@ -36,7 +28,8 @@ sub BUILDARGS {
     my %repos = ref($_[0]) ? %{$_[0]} : @_;
 
     my $zilla = delete $repos{zilla};
-    my $name = delete $repos{plugin_name};
+    my $git_dir = delete $repos{plugin_name};
+    $git_dir = '.' if $git_dir eq 'GitObtain';
 
     my %args;
     for my $project (keys %repos) {
@@ -51,19 +44,17 @@ sub BUILDARGS {
 
     return {
         zilla => $zilla,
-        plugin_name => $name,
+        plugin_name => 'GitObtain',
         _repos => \%repos,
+        git_dir => $git_dir,
         %args,
     };
 }
-
-my $git_dir_exists = 0;
 
 sub before_build {
     my $self = shift;
 
     if (-d $self->git_dir) {
-        $git_dir_exists = 1;
         $self->log("using existing directory " . $self->git_dir);
     } else {
         $self->log("creating directory " . $self->git_dir);
@@ -82,25 +73,6 @@ sub before_build {
 }
 
 
-sub _remove_dir {
-    my ($self,$dir) = @_;
-    $self->log("removing $dir");
-    remove_tree($dir) or warn "Can't remove directory $dir -- $!\n";
-}
-
-sub after_build {
-    my $self = shift;
-    return if $self->keep_git_dirs;
-    if ($git_dir_exists) {
-        for my $project (keys %{$self->_repos}) {
-            my $dir = $self->git_dir . '/' . $project;
-            $self->_remove_dir($dir);
-        }
-    } else {
-        $self->_remove_dir($self->git_dir);
-    }
-}
-
 __PACKAGE__->meta->make_immutable;
 1;
 
@@ -116,9 +88,7 @@ Dist::Zilla::Plugin::GitObtain - obtain files from a git repository before build
 In your F<dist.ini>:
 
   [GitObtain]
-    --git_dir       = some_dir
-    --keep_git_dirs = 1
-    ;package    = url                                           tag
+    ;project    = url                                           tag
     rakudo      = git://github.com/rakudo/rakudo.git            2010.06
     http-daemon = git://gitorious.org/http-daemon/mainline.git
 
@@ -127,19 +97,35 @@ In your F<dist.ini>:
 This module uses L<Git::Wrapper> to obtain files from git repositories
 before building a distribution.
 
-You may specify the directory the git repositories will be placed into
-by using the C<--git_dir> option.  This directory path will be created
-if it does not already exist (including intermediate directories).
-After the build is complete, this directory will be removed.  If you do
-not specify C<--git_dir>, a default value of "src" will be used.
-If you don't want the directories that are created to be removed after
-the completion of the build, set C<--keep_git_dirs> to be a true value.
+You may specify the directory that git repositories will be placed into
+by following the plugin name (C<GitObtain>) with a forward slash
+(C</>), then the path to the particular directory. For instance, if your
+F<dist.ini> file contained the following section:
 
-Each repository has a name that will be used as the directory within the
-C<--git_dir> directory to place a clone of the git repository specified
-by the URL.  Optionally, each URL may be followed by a "tag" name that
-will be checked out of the git repository.  (Anything that may be passed
-to C<git checkout> may be used for the "tag".)
+  [GitObtain/alpha/beta/gamma]
+    ...
+
+projects downloaded via git would be placed into the F<alpha/beta/gamma>
+directory. This directory and any intermediate directories in the path
+will be created if they do not already exist.  If you do not specify a
+path, then the git projects will be created in the current directory.
+
+Following the section header is the list of git repositories to download
+and include in the distribution. Each repository is specified by the
+name of the directory in which the repository will be checked out, an
+equals sign (C<=>), the URL to the git repository, and an optional "tag"
+to checkout (anything that may be passed to C<git checkout> may be used 
+for the "tag"). The repository directory will be created beneath the path
+specified in the section heading. So,
+
+  [GitObtain/foo]
+    my_project      = git://github.com/example/my_project.git
+    another_project = git://github.com/example/another_project.git
+
+will create a F<foo> directory beneath the current directory and
+F<my_project> and F<another_project> directories inside of the F<foo>
+directory. Each of the F<my_project> and F<another_project> directories
+will be git repositories.
 
 =head1 AUTHOR
 
