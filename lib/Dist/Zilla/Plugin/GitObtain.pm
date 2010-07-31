@@ -14,7 +14,7 @@ has 'git_dir' => (
     is => 'rw',
     isa => 'Str',
     required => 1,
-    default => 'src',
+    default => '.',
 );
 
 has _repos => (
