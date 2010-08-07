@@ -1,2 +1,3 @@
 # Ignore distributions that have been built in this directory
-Dist-Zilla-Plugin-GitObtain*
+/Dist-Zilla-Plugin-GitObtain*
+.build
