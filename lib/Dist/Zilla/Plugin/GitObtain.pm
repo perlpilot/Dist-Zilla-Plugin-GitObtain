@@ -40,7 +40,7 @@ sub BUILDARGS {
             next;
         }
         my ($url,$tag) = split ' ', $repos{$project};
-        $tag ||= 'HEAD';
+        $tag ||= 'master';
         $repos{$project} = { url => $url, tag => $tag };
     }
 
@@ -70,7 +70,9 @@ sub before_build {
                 my $git = Git::Wrapper->new($dir);
                 my ($wc_url) = $git->config("remote.origin.url");
                 if ($wc_url eq $url) {
-                    $self->log("checkout $project revision $tag");
+                    $self->log("$project: pull latest changes");
+                    $git->pull;
+                    $self->log("$project: checkout $tag");
                     $git->checkout($tag);
                 } else {
                     die "$project directory is not a GIT repository for $url ($wc_url)\n";
@@ -83,7 +85,7 @@ sub before_build {
             my $git = Git::Wrapper->new($self->git_dir);
             $git->clone($url,$project) or die "Can't clone repository $url -- $!";
             next unless $tag;
-            $self->log("checkout $project revision $tag");
+            $self->log("$project: checkout $tag");
             my $git_tag = Git::Wrapper->new($dir);
             $git_tag->checkout($tag);
         }
@@ -132,9 +134,9 @@ Following the section header is the list of git repositories to download
 and include in the distribution. Each repository is specified by the
 name of the directory in which the repository will be checked out, an
 equals sign (C<=>), the URL to the git repository, and an optional "tag"
-to checkout (anything that may be passed to C<git checkout> may be used 
-for the "tag"). The repository directory will be created beneath the path
-specified in the section heading. So,
+to checkout. Anything that may be passed to C<git checkout> may be used 
+for the "tag"; the default is C<master>. The repository directory will 
+be created beneath the path specified in the section heading. So,
 
   [GitObtain/foo]
     my_project      = git://github.com/example/my_project.git
