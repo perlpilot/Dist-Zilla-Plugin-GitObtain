@@ -29,8 +29,7 @@ sub BUILDARGS {
     my %repos = ref($_[0]) ? %{$_[0]} : @_;
 
     my $zilla = delete $repos{zilla};
-    my $git_dir = delete $repos{plugin_name};
-    $git_dir = '.' if $git_dir eq 'GitObtain';
+    my $plugin_name = delete $repos{plugin_name};
 
     my %args;
     for my $project (keys %repos) {
@@ -46,9 +45,9 @@ sub BUILDARGS {
 
     return {
         zilla => $zilla,
-        plugin_name => 'GitObtain',
+        plugin_name => $plugin_name,
         _repos => \%repos,
-        git_dir => $git_dir,
+        git_dir => $args{git_dir} || '.',
         %args,
     };
 }
