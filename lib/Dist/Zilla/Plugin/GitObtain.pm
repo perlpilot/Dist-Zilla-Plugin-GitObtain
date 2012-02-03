@@ -124,28 +124,22 @@ In your F<dist.ini>:
 This module uses L<Git::Wrapper> to obtain files from git repositories
 before building a distribution.
 
-You may specify the directory that git repositories will be placed into
-by following the plugin name (C<GitObtain>) with a forward slash
-(C</>), then the path to the particular directory. For instance, if your
-F<dist.ini> file contained the following section:
+Projects downloaded via git would be placed into the current directory
+by default. To specify an alternate location, use the C<--git_dir>
+option. This directory and any intermediate directories in the path will
+be created if they do not already exist.
 
-  [GitObtain/alpha/beta/gamma]
-    ...
+Following the C<[GitObtain]> section header is the list of git
+repositories to download and include in the distribution. Each
+repository is specified by the name of the directory in which the
+repository will be checked out, an equals sign (C<=>), the URL to the
+git repository, and an optional "tag" to checkout. Anything that may be
+passed to C<git checkout> may be used for the "tag"; the default is
+C<master>. The repository directory will be created beneath the path
+specified in the section heading. So,
 
-projects downloaded via git would be placed into the F<alpha/beta/gamma>
-directory. This directory and any intermediate directories in the path
-will be created if they do not already exist.  If you do not specify a
-path, then the git projects will be created in the current directory.
-
-Following the section header is the list of git repositories to download
-and include in the distribution. Each repository is specified by the
-name of the directory in which the repository will be checked out, an
-equals sign (C<=>), the URL to the git repository, and an optional "tag"
-to checkout. Anything that may be passed to C<git checkout> may be used 
-for the "tag"; the default is C<master>. The repository directory will 
-be created beneath the path specified in the section heading. So,
-
-  [GitObtain/foo]
+  [GitObtain]
+    --git_dir       = foo
     my_project      = git://github.com/example/my_project.git
     another_project = git://github.com/example/another_project.git
 
@@ -153,6 +147,22 @@ will create a F<foo> directory beneath the current directory and
 F<my_project> and F<another_project> directories inside of the F<foo>
 directory. Each of the F<my_project> and F<another_project> directories
 will be git repositories.
+
+To specify multiple target directories in which to obtain git repositories,
+use alternate section names in the section header:
+
+  [GitObtain / alpha ]
+    --git_dir       = foo
+    my_project      = git://github.com/example/my_project.git
+
+  [GitObtain / beta ]
+    --git_dir       = bar
+    another_project = git://github.com/example/another_project.git
+
+The above example config contains 2 GitObtain sections called C<alpha>
+and C<beta>. The C<alpha> section creates repositories in the F<foo>
+directory and the C<beta> section creates repositories in the F<bar>
+directory.
 
 =head1 AUTHOR
 
