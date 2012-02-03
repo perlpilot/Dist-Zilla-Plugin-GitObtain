@@ -69,6 +69,14 @@ sub before_build {
                 my $git = Git::Wrapper->new($dir);
                 my ($wc_url) = $git->config("remote.origin.url");
                 if ($wc_url eq $url) {
+                    my $branch;
+                    for ($git->config({ list => 1 })) {
+                        next unless /^branch\.(\w+)\.remote=origin$/;
+                        $branch = $1;
+                        last;
+                    }
+                    $self->log("$project: checkout $branch");
+                    $git->checkout($branch);
                     $self->log("$project: pull latest changes");
                     $git->pull;
                     $self->log("$project: checkout $tag");
